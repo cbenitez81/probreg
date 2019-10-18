@@ -152,8 +152,8 @@ class RigidFilterReg(FilterReg):
             raise ValueError('Unknown objective_type: %s.' % objective_type)
 
         if not m2 is None:
-            sigma2 = ((m0 * np.square(t_source).sum(axis=1) - 2.0 * (t_source * m1).sum(axis=1) + m2) / (m0 + c)).sum()
-            sigma2 /= m0m0.sum()
+            sigma2 = (m0 *(np.square(t_source).sum(axis=1) - 2.0 * (t_source * m1).sum(axis=1) + m2) / (m0 + c)).sum()
+            sigma2 /= (3*m0m0.sum())
         return MstepResult(tf.RigidTransformation(rot, t), sigma2, q)
 
 
