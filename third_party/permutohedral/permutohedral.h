@@ -49,6 +49,7 @@ protected:
 		}
 	};
 	std::vector<int> offset_, rank_;
+    std::vector<int> val_offset_;
 	std::vector<float> barycentric_;
 	std::vector<Neighbors> blur_neighbors_;
 	// Number of elements, size of sparse discretized space, dimension of features
@@ -58,7 +59,8 @@ protected:
 	void seqCompute ( float* out, const float* in, int value_size, bool reverse=false, int start=0 ) const;
 public:
 	Permutohedral();
-	void init ( const MatrixXf & features, bool with_blur = true );
+	void init ( const MatrixXf & features, const MatrixXf &in, bool with_blur = true );
+    void init_with_val(const MatrixXf& feature,const MatrixXf& in, bool with_blur);
 	int getLatticeSize() const;
 	MatrixXf compute ( const MatrixXf & v, bool reverse=false, int start=0 ) const;
 	void compute ( MatrixXf & out, const MatrixXf & in, bool reverse=false, int start=0 ) const;
