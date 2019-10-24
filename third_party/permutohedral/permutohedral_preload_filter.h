@@ -38,6 +38,7 @@ using namespace Eigen;
 /***          Permutohedral Lattice           ***/
 /************************************************/
 
+static const int DIMENSION = 3;
 
 class Permutohedral
 {
@@ -48,16 +49,20 @@ protected:
 		}
 	};
 	std::vector<int> offset_, rank_;
+    std::vector<int> val_offset_;
 	std::vector<float> barycentric_;
 	std::vector<Neighbors> blur_neighbors_;
+    HashTable hash_table_;
 	// Number of elements, size of sparse discretized space, dimension of features
-	int N_, M_, d_;
+	int N_, M_;
 	bool with_blur_;
 	void sseCompute ( float* out, const float* in, int value_size, bool reverse=false, int start=0 ) const;
 	void seqCompute ( float* out, const float* in, int value_size, bool reverse=false, int start=0 ) const;
 public:
-	Permutohedral();
-	void init ( const MatrixXf & features, bool with_blur = true );
+	Permutohedral(int N,int M,int d, bool with_blur);
+	void init ( const MatrixXf & features, const MatrixXf &in, bool with_blur = true );
+    void init_with_val(const MatrixXf& feature,const MatrixXf& in, bool with_blur);
+    void apply(float* out,const MatrixXf& feature);
 	int getLatticeSize() const;
 	MatrixXf compute ( const MatrixXf & v, bool reverse=false, int start=0 ) const;
 	void compute ( MatrixXf & out, const MatrixXf & in, bool reverse=false, int start=0 ) const;
