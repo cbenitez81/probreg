@@ -1,6 +1,7 @@
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
 #include "permutohedral.h"
+#include "permutohedral_preload_filter.h"
 #include "types.h"
 
 namespace py = pybind11;
@@ -25,7 +26,6 @@ PYBIND11_MODULE(_permutohedral_lattice, m) {
         ph.compute(out, v);
         return out;
     });
-
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;
 #else

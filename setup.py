@@ -181,6 +181,19 @@ ext_modules = [
         ],
         language='c++'
     ),
+
+    Extension(
+        'probreg._preload_lattice',
+        ['probreg/cc/preload_lattice_py.cc', 'third_party/permutohedral/permutohedral_preload_filter.cpp'],
+        include_dirs=[
+            # Path to pybind11 headers
+            get_pybind_include(),
+            get_pybind_include(user=True),
+            find_eigen(['third_party/eigen']),
+            'third_party/permutohedral'
+        ],
+        language='c++'
+    ),
 ]
 
 
