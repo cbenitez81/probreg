@@ -50,7 +50,7 @@ inline int round(double X) { return int(X + .5); }
 /***          Permutohedral Lattice           ***/
 /************************************************/
 
-Permutohedral_preload::Permutohedral_preload(int N,int M,int d, bool with_blur) : N_(N), M_(M), with_blur_(with_blur),hash_table_(d,M,N) {}
+Permutohedral_preload::Permutohedral_preload(int N,int M,int d, bool with_blur) : N_(N), M_(M), with_blur_(with_blur),hash_table_(d,M,N*10) {}
 
 void Permutohedral_preload::seqCompute(float* out, const float* in, int value_size, bool reverse, int start) const {
     constexpr int d_ = DIMENSION;
@@ -192,13 +192,14 @@ int Permutohedral_preload::getLatticeSize() const { return M_; }
 #ifdef SSE_PERMUTOHEDRAL
 void Permutohedral_preload::init_with_val(const MatrixXf& feature,const MatrixXf& in, bool with_blur)  {
     // Compute the lattice coordinates for each feature [there is going to be a lot of magic here
+    printf("aqui\n");
+    
     N_ = feature.cols();
+    assert(feature.cols() == in.cols());
 	auto vd_ = in.rows();
     constexpr int d_ = DIMENSION;
     assert(d_ == feature.rows());
     with_blur_ = with_blur;
-    HashTable hash_table(d_,vd_, N_ /**(d_+1)*/);
-
     constexpr int blocksize = sizeof(__m128) / sizeof(float);
     const __m128 invdplus1 = _mm_set1_ps(1.0f / (d_ + 1));
     const __m128 dplus1 = _mm_set1_ps(d_ + 1);
@@ -221,7 +222,7 @@ void Permutohedral_preload::init_with_val(const MatrixXf& feature,const MatrixXf
     float barycentric[(d_ + 2) * blocksize];
     short canonical[(d_ + 1) * (d_ + 1)];
     short key[d_ + 1];
-
+    
     // Compute the canonical simplex
     for (int i = 0; i <= d_; i++) {
         for (int j = 0; j <= d_ - i; j++) {
@@ -310,7 +311,7 @@ void Permutohedral_preload::init_with_val(const MatrixXf& feature,const MatrixXf
                 barycentric[j * (d_ + 2) + p + 1] -= fv[j];
             }
         }
-
+    
         // The rest is not SSE'd
         for (int j = 0; j < blocksize; j++) {
             // Wrap around
@@ -324,13 +325,14 @@ void Permutohedral_preload::init_with_val(const MatrixXf& feature,const MatrixXf
                     key[i] = frem0[i * blocksize + j] +
                              canonical[remainder * (d_ + 1) + (int)frank[i * blocksize + j]];
                 }
-				auto offset_tmp = hash_table.find(key, true);
+				auto offset_tmp = hash_table_.find(key, true);
                 offset_[(j + k) * (d_ + 1) + remainder] = offset_tmp;
                 rank_[(j + k) * (d_ + 1) + remainder] = frank[remainder * blocksize + j];
                 barycentric_[(j + k) * (d_ + 1) + remainder] = barycentric[j * (d_ + 2) + remainder];
 				float w = barycentric[j * (d_ + 2) + remainder];
-				for (int k1 = 0; k1 < M_; k++){
-					hash_table.values_[offset_tmp  + k1] += w * in(k1,k+j);
+                
+				for (int k1 = 0; k1 < M_; k1++){
+					hash_table_.values_[offset_tmp  + k1] += w * in(k1,k+j);
 				}
             }
         }
@@ -345,19 +347,19 @@ void Permutohedral_preload::init_with_val(const MatrixXf& feature,const MatrixXf
     // Find the Neighbors of each lattice point
 
     // Get the number of vertices in the lattice
-    M_ = hash_table.size();
+    M_ = hash_table_.size();
 
     if (with_blur_) {
         // Create the neighborhood structure
         blur_neighbors_.resize((d_ + 1) * M_);
-		std::vector<float> new_values(M_ * hash_table.capacity_);
+		std::vector<float> new_values(M_ * hash_table_.capacity_);
         short n1[d_ + 1];
         short n2[d_ + 1];
-		auto &values = hash_table.values_;
+		auto &values = hash_table_.values_;
         // For each of d+1 axes,
         for (int j = 0; j <= d_; j++) {
-            for (int i = 0; i < hash_table.filled_; i++) {
-                const short* key = hash_table.getKey(i);
+            for (int i = 0; i < hash_table_.filled_; i++) {
+                const short* key = hash_table_.getKey(i);
                 for (int k = 0; k < d_; k++) {
                     n1[k] = key[k] - 1;
                     n2[k] = key[k] + 1;
@@ -365,8 +367,8 @@ void Permutohedral_preload::init_with_val(const MatrixXf& feature,const MatrixXf
                 n1[j] = key[j] + d_;
                 n2[j] = key[j] - d_;
 
-                int n1_val = hash_table.find(n1,false)*M_;
-                int n2_val = hash_table.find(n2,false)*M_;
+                int n1_val = hash_table_.find(n1,false)*M_;
+                int n2_val = hash_table_.find(n2,false)*M_;
 		
 				float n1_idx= 1;
 				float n2_idx = 1;
@@ -385,8 +387,9 @@ void Permutohedral_preload::init_with_val(const MatrixXf& feature,const MatrixXf
                 }
             }
         }
-		std::swap(hash_table.values_, new_values);
+		std::swap(hash_table_.values_, new_values);
     }
+    
 }
 #else
 //NOT IMPLEMENTED
